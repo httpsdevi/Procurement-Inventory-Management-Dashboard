@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Procurement & Inventory Dashboard</title>
+    <!-- Tailwind CSS for a modern, utility-first design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Inter font for clean typography -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 to-purple-600 min-h-screen p-4 md:p-8 text-gray-800">
+
+    <!-- Dashboard Container -->
+    <div class="max-w-7xl mx-auto bg-white bg-opacity-95 rounded-3xl p-6 md:p-10 shadow-2xl backdrop-blur-md">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center pb-6 md:pb-8 border-b-2 border-gray-200 mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-700">Procurement & Inventory Dashboard</h1>
+            <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                <label for="period" class="font-medium text-gray-700">Period:</label>
+                <select id="period" class="py-2 px-4 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200 cursor-pointer" onchange="updateDashboard()">
+                    <option value="30">Last 30 Days</option>
+                    <option value="90" selected>Last 90 Days</option>
+                    <option value="365">Last Year</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Key Performance Indicators (KPIs) -->
+        <div id="kpi-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Dynamic KPI cards will be populated here by JavaScript -->
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Chart 1: Purchase Order Cycle Time -->
+            <div class="chart-card lg:col-span-2 bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+                <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Purchase Order Cycle Time Trend</h3>
+                <canvas id="cycleTimeChart"></canvas>
+            </div>
+            <!-- Chart 2: Vendor Performance Score -->
+            <div class="chart-card bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+                <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Vendor Performance Score</h3>
+                <canvas id="vendorPerformanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Another row of charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Chart 3: Monthly Procurement Spend -->
+            <div class="chart-card bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+                <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Monthly Procurement Spend</h3>
+                <canvas id="spendChart"></canvas>
+            </div>
+            <!-- Chart 4: Inventory Turnover -->
+            <div class="chart-card bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+                <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Inventory Turnover by Category</h3>
+                <canvas id="inventoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Vendor Performance Table -->
+        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 mb-8">
+            <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Top Vendor Performance</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl">
+                            <th class="p-4 text-left font-medium rounded-tl-xl">Vendor Name</th>
+                            <th class="p-4 text-left font-medium">Total Orders</th>
+                            <th class="p-4 text-left font-medium">On-Time %</th>
+                            <th class="p-4 text-left font-medium">Quality Score</th>
+                            <th class="p-4 text-left font-medium">Avg Cycle Time</th>
+                            <th class="p-4 text-left font-medium rounded-tr-xl">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendorTableBody">
+                        <!-- Dynamic vendor data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory Alerts -->
+        <div class="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+            <h3 class="text-xl font-bold text-center mb-4 text-gray-800">Inventory Alerts & Actions Required</h3>
+            <div id="alert-list">
+                <!-- Dynamic alerts will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating refresh button -->
+    <button onclick="refreshDashboard()" title="Refresh Data" class="fixed bottom-6 right-6 p-4 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:rotate-180">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm2.936 14.868l-3.324-3.324A1.5 1.5 0 0 1 11 12.5V8a1 1 0 1 1 2 0v4.5a.5.5 0 0 1-.293.456l3.324 3.324a1 1 0 1 1-1.415 1.414z"/>
+        </svg>
+    </button>
+    
+    <!-- Loading Spinner -->
+    <div id="loader" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden transition-opacity duration-300">
+        <div class="animate-spin rounded-full h-24 w-24 border-b-4 border-white"></div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-80 text-center">
+            <p id="modalMessage" class="font-semibold text-lg mb-4"></p>
+            <button onclick="closeModal()" class="py-2 px-6 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder for chart instances to allow for dynamic updates
+        let charts = {};
+
+        // Data fetching and simulation function
+        async function fetchData(period) {
+            // Show loader
+            document.getElementById('loader').classList.remove('hidden');
+
+            // Simulate network latency
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Generate mock data based on period
+            const getMonths = (count) => {
+                const now = new Date();
+                const months = [];
+                for (let i = 0; i < count; i++) {
+                    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    months.unshift(date.toLocaleString('default', { month: 'short' }));
+                }
+                return months;
+            };
+
+            const data = {
+                kpis: {
+                    procurementValue: period === '30' ? '$0.8M' : period === '90' ? '$2.4M' : '$9.5M',
+                    cycleTime: period === '30' ? '6.9' : period === '90' ? '7.3' : '7.8',
+                    inventoryValue: period === '30' ? '$920K' : period === '90' ? '$890K' : '$780K',
+                    deliveryRate: period === '30' ? '96.1%' : period === '90' ? '94.2%' : '90.5%'
+                },
+                cycleTimeData: {
+                    labels: getMonths(period === '30' ? 4 : period === '90' ? 8 : 12),
+                    datasets: [{
+                        label: 'Avg Cycle Time (Days)',
+                        data: period === '30' ? [7.2, 7.0, 6.8, 6.9] : period === '90' ? [8.2, 7.9, 7.5, 7.1, 6.8, 7.3, 7.0, 7.3] : [8.5, 8.2, 8.0, 7.9, 7.7, 7.5, 7.3, 7.1, 7.0, 6.9, 6.8, 6.9],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                spendData: {
+                    labels: getMonths(period === '30' ? 4 : period === '90' ? 8 : 12),
+                    datasets: [{
+                        label: 'Procurement Spend ($K)',
+                        data: period === '30' ? [280, 310, 305, 320] : period === '90' ? [320, 285, 390, 420, 380, 450, 380, 410] : [350, 320, 380, 340, 390, 420, 380, 450, 410, 430, 400, 450],
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: '#764ba2',
+                        borderWidth: 2
+                    }]
+                },
+                vendors: [
+                    { name: 'TechPro Solutions', orders: 142, onTime: 97.2, quality: 4.8, cycleTime: 5.2, status: 'Excellent' },
+                    { name: 'Global Supplies Inc', orders: 89, onTime: 94.1, quality: 4.6, cycleTime: 6.8, status: 'Good' },
+                    { name: 'QuickParts Ltd', orders: 76, onTime: 91.3, quality: 4.3, cycleTime: 8.1, status: 'Good' },
+                    { name: 'Mega Materials', orders: 63, onTime: 88.9, quality: 4.1, cycleTime: 9.7, status: 'Average' },
+                    { name: 'Budget Components', orders: 45, onTime: 82.2, quality: 3.7, cycleTime: 12.3, status: 'Poor' }
+                ],
+                alerts: [
+                    { type: 'critical', text: 'Critical Stock Level', details: 'Office Supplies - Only 3 days remaining', emoji: '🚨' },
+                    { type: 'warning', text: 'Slow Moving Inventory', details: 'Electronics Category - 180 days no movement', emoji: '⚠️' },
+                    { type: 'info', text: 'New Vendor Onboarded', details: 'TechInnovate Corp - Ready for first orders', emoji: 'ℹ️' },
+                    { type: 'warning', text: 'Contract Renewal Due', details: 'Global Supplies Inc - Contract expires in 30 days', emoji: '📋' }
+                ]
+            };
+
+            return data;
+        }
+
+        // Renders all dynamic content from fetched data
+        function renderDashboard(data) {
+            // Update KPI cards
+            const kpiGrid = document.getElementById('kpi-grid');
+            kpiGrid.innerHTML = `
+                <div class="kpi-card bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-3xl font-bold">${data.kpis.procurementValue}</span>
+                        <span class="text-2xl">📈</span>
+                    </div>
+                    <div class="text-sm opacity-90">Total Procurement Value</div>
+                </div>
+                <div class="kpi-card bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-3xl font-bold">${data.kpis.cycleTime}</span>
+                        <span class="text-2xl">⏱️</span>
+                    </div>
+                    <div class="text-sm opacity-90">Avg PO Cycle Time (Days)</div>
+                </div>
+                <div class="kpi-card bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-3xl font-bold">${data.kpis.inventoryValue}</span>
+                        <span class="text-2xl">💰</span>
+                    </div>
+                    <div class="text-sm opacity-90">Current Inventory Value</div>
+                </div>
+                <div class="kpi-card bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-3xl font-bold">${data.kpis.deliveryRate}</span>
+                        <span class="text-2xl">🎯</span>
+                    </div>
+                    <div class="text-sm opacity-90">On-Time Delivery Rate</div>
+                </div>
+            `;
+
+            // Update Charts
+            if (charts.cycleTimeChart) charts.cycleTimeChart.destroy();
+            const cycleCtx = document.getElementById('cycleTimeChart').getContext('2d');
+            charts.cycleTimeChart = new Chart(cycleCtx, {
+                type: 'line',
+                data: data.cycleTimeData,
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: false, min: 6, max: 9 } }
+                }
+            });
+
+            if (charts.vendorPerformanceChart) charts.vendorPerformanceChart.destroy();
+            const vendorCtx = document.getElementById('vendorPerformanceChart').getContext('2d');
+            charts.vendorPerformanceChart = new Chart(vendorCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.vendors.map(v => v.name),
+                    datasets: [{
+                        data: data.vendors.map(v => v.onTime),
+                        backgroundColor: ['#28a745', '#20c997', '#17a2b8', '#ffc107', '#dc3545'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            if (charts.spendChart) charts.spendChart.destroy();
+            const spendCtx = document.getElementById('spendChart').getContext('2d');
+            charts.spendChart = new Chart(spendCtx, {
+                type: 'bar',
+                data: data.spendData,
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            if (charts.inventoryChart) charts.inventoryChart.destroy();
+            const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+            charts.inventoryChart = new Chart(inventoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Office Supplies', 'Raw Materials', 'Tools', 'Safety Equipment'],
+                    datasets: [{
+                        label: 'Turnover Rate',
+                        data: period === '30' ? [4.5, 7.1, 3.3, 5.8, 3.0] : period === '90' ? [4.2, 6.8, 3.1, 5.5, 2.9] : [3.8, 6.1, 2.9, 5.2, 2.5],
+                        backgroundColor: ['#667eea', '#764ba2', '#36a2eb', '#ff6384', '#ffcd56'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    indexAxis: 'y',
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+
+            // Update Vendor Table
+            const vendorTableBody = document.getElementById('vendorTableBody');
+            vendorTableBody.innerHTML = '';
+            data.vendors.forEach(vendor => {
+                const statusClass = vendor.status.toLowerCase();
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200 cursor-pointer';
+                row.innerHTML = `
+                    <td class="p-4">${vendor.name}</td>
+                    <td class="p-4">${vendor.orders}</td>
+                    <td class="p-4">${vendor.onTime}%</td>
+                    <td class="p-4">${vendor.quality}/5</td>
+                    <td class="p-4">${vendor.cycleTime} days</td>
+                    <td class="p-4">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full status-${statusClass} bg-opacity-70">
+                            ${vendor.status}
+                        </span>
+                    </td>
+                `;
+                vendorTableBody.appendChild(row);
+            });
+
+            // Update Alerts
+            const alertList = document.getElementById('alert-list');
+            alertList.innerHTML = '';
+            data.alerts.forEach(alert => {
+                const alertClasses = {
+                    critical: 'bg-red-50 border-red-500',
+                    warning: 'bg-amber-50 border-amber-500',
+                    info: 'bg-sky-50 border-sky-500'
+                };
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-4 mb-3 rounded-lg border-l-4 ${alertClasses[alert.type]} transition-transform duration-200 hover:translate-x-1`;
+                div.innerHTML = `
+                    <div>
+                        <strong class="font-bold">${alert.text}</strong><br>
+                        <span class="text-sm">${alert.details}</span>
+                    </div>
+                    <span class="text-2xl">${alert.emoji}</span>
+                `;
+                alertList.appendChild(div);
+            });
+
+            // Hide loader
+            document.getElementById('loader').classList.add('hidden');
+        }
+        
+        // Show a message in the modal
+        function showMessage(message) {
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('messageModal').classList.remove('hidden');
+        }
+
+        // Close the message modal
+        function closeModal() {
+            document.getElementById('messageModal').classList.add('hidden');
+        }
+
+        // Function to update the dashboard based on the selected period
+        async function updateDashboard() {
+            const period = document.getElementById('period').value;
+            const data = await fetchData(period);
+            renderDashboard(data);
+            showMessage(`Dashboard updated for the Last ${period} Days.`);
+        }
+
+        // Function for the refresh button
+        async function refreshDashboard() {
+            const period = document.getElementById('period').value;
+            const data = await fetchData(period);
+            renderDashboard(data);
+            showMessage('Dashboard refreshed successfully!');
+        }
+
+        // Initial load
+        window.onload = async () => {
+            await updateDashboard();
+        };
+    </script>
+</body>
+</html>
